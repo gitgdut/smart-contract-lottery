@@ -7,6 +7,8 @@ import {
 import {
     VRFV2PlusClient
 } from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
+import {console} from "forge-std/console.sol";
+
 /**
  * @title A sample Raffle contract
  * @author
@@ -19,7 +21,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
     error Raffle__SendMoreToEnterRaffle();
     error Raffle__TransferFailed();
     error Raffle__RaffleNotOpen();
-    error Raffle__UpKeepNotNeeded(
+    error Raffle__UpkeepNotNeeded(
         uint256 balance,
         uint256 playersLength,
         uint256 raffleState
@@ -45,7 +47,8 @@ contract Raffle is VRFConsumerBaseV2Plus {
 
     event RaffleEntered(address indexed player);
     event WinnerPicked(address indexed winner);
-
+    event RequestedRaffleWinner(uint256 indexed requestId);
+    //event UpkeepPerformed(uint256 indexed upkeepTime);
     constructor(
         uint256 entranceFee,
         uint256 interval,
@@ -65,6 +68,8 @@ contract Raffle is VRFConsumerBaseV2Plus {
     }
 
     function enterRaffle() public payable {
+        console.log("Hello!!!");
+        console.log(msg.value);
         //require(msg.value >= i_entranceFee, "Not enough ETH sent!");
         // require(msg.value >= i_entranceFee, SendMoreToEnterRaffle());
         if (msg.value < i_entranceFee) {
@@ -112,7 +117,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
         (bool upkeepNeeded, ) = checkUpKeep("");
 
         if (!upkeepNeeded) {
-            revert Raffle__UpKeepNotNeeded(
+            revert Raffle__UpkeepNotNeeded(
                 address(this).balance,
                 s_players.length,
                 uint256(s_raffleState)
@@ -132,6 +137,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
                 )
             });
         uint256 requestId = s_vrfCoordinator.requestRandomWords(request);
+        emit RequestedRaffleWinner(requestId);
     }
 
     function pickWinner() external {
@@ -152,7 +158,8 @@ contract Raffle is VRFConsumerBaseV2Plus {
                     VRFV2PlusClient.ExtraArgsV1({nativePayment: false})
                 )
             });
-        s_vrfCoordinator.requestRandomWords(request);
+        uint256 requestId = s_vrfCoordinator.requestRandomWords(request);
+        emit RequestedRaffleWinner(requestId);
         //Get random number from chainlink VRF 2.5
         //request RNG
         //get RNG
@@ -192,5 +199,8 @@ contract Raffle is VRFConsumerBaseV2Plus {
     }
     function getRecentWinner() external view returns (address) {
         return s_recentWinner;
+    }
+    function getLastTimestamp() external view returns (uint256) {
+        return s_lastTimeStamp;
     }
 }
